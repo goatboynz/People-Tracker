@@ -1,9 +1,9 @@
-name: "GRACe Portal"
-description: "Growers Regulatory Assistance & Compliance engine"
+name: "Visitors Sign-in"
+description: "Visitors sign-in register"
 url: "https://www.chilldivision.co.nz"
 codenotary: josiah@chilldivision.co.nz
-version: "0.9.5"
-slug: "grace_addon"
+version: "0.9.0"
+slug: "visitors_addon"
 panel_icon: mdi:cannabis
 init: false
 arch:
@@ -19,4 +19,4 @@ startup: application
 map:
   - type: addon_config
     read_only: False
-    path: /grace_config
+    path: /visitors_config
