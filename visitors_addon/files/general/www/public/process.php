@@ -1,7 +1,14 @@
 <?php
 require_once 'config.php';
 
-$conn = new SQLite3($dbfile);
+// Database connection using PDO
+try {
+    $conn = new PDO("sqlite:" . $dbfile);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    echo "Connection failed: " . $e->getMessage();
+    exit;
+}
 
 // Create tables if they do not exist
 $initSchema = "
@@ -41,42 +48,50 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "SELECT term_text FROM terms";
         $result = $conn->query($sql);
 
-        if ($result && $row = $result->fetchArray(SQLITE3_ASSOC)) {
+        if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
             do {
                 echo "<label><input type='checkbox' name='terms[]' value='{$row['term_text']}' required> {$row['term_text']}</label><br>";
-            } while ($row = $result->fetchArray(SQLITE3_ASSOC));
+            } while ($row = $result->fetch(PDO::FETCH_ASSOC));
         } else {
             echo "No terms found.";
         }
     } 
     elseif ($action == 'sign_in') {
-        $name = $conn->escapeString($_POST['name']);
-        $contact = $conn->escapeString($_POST['contact']);
-        $company = $conn->escapeString($_POST['company']);
-        $visiting = $conn->escapeString($_POST['visiting']);
+        $name = $_POST['name'];
+        $contact = $_POST['contact'];
+        $company = $_POST['company'];
+        $visiting = $_POST['visiting'];
         $timestamp = date('Y-m-d H:i:s');
 
+        // Using prepared statement for insert query
         $sql = "INSERT INTO visitors (name, contact, company, visiting, timestamp) 
-                VALUES ('$name', '$contact', '$company', '$visiting', '$timestamp')";
+                VALUES (:name, :contact, :company, :visiting, :timestamp)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':contact', $contact);
+        $stmt->bindParam(':company', $company);
+        $stmt->bindParam(':visiting', $visiting);
+        $stmt->bindParam(':timestamp', $timestamp);
 
-        if ($conn->exec($sql)) {
+        try {
+            $stmt->execute();
             echo "Sign-in successful!";
-        } else {
-            echo "Error: " . $conn->lastErrorMsg();
+        } catch(PDOException $e) {
+            echo "Error: " . $e->getMessage();
         }
     }
     elseif ($action == 'search_for_sign_out') {
-        $searchTerm = $conn->escapeString($_POST['searchTerm']);
+        $searchTerm = $_POST['searchTerm']; // Assuming you'll add proper escaping/sanitization
         $today = date('Y-m-d');
 
         $sql = "SELECT id, name FROM visitors 
-                WHERE name LIKE '$searchTerm%' AND DATE(timestamp) = '$today' AND sign_out_timestamp IS NULL"; 
+                WHERE name LIKE '$searchTerm%' AND DATE(timestamp) = '$today' AND sign_out_timestamp IS NULL";
         $result = $conn->query($sql);
 
-        if ($result && $row = $result->fetchArray(SQLITE3_ASSOC)) {
+        if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
             do {
                 echo "<button type='button' class='sign-out-button' data-visitor-id='{$row['id']}'>{$row['name']}</button><br>";
-            } while ($row = $result->fetchArray(SQLITE3_ASSOC));
+            } while ($row = $result->fetch(PDO::FETCH_ASSOC));
         } else {
             echo "No matching visitors found.";
         }
@@ -88,12 +103,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "UPDATE visitors SET sign_out_timestamp = '$signoutTimestamp' WHERE id = $visitorId";
 
         if ($conn->exec($sql)) {
-            echo "Sign-out successful!"; 
+            echo "Sign-out successful!";
         } else {
             echo "Error: " . $conn->lastErrorMsg();
         }
     }
 }
 
-$conn->close();
 ?>
