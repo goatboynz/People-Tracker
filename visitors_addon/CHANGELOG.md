@@ -1,3 +1,8 @@
+## 0.9.3
+
+- Fixed duplicate insertion of Terms
+- Fixed panel icon
+
 ## 0.9.2
 
 - Rollback admin page
