@@ -2,7 +2,7 @@ name: "Visitors Sign-in"
 description: "Visitors sign-in register"
 url: "https://www.chilldivision.co.nz"
 codenotary: josiah@chilldivision.co.nz
-version: "0.9.4"
+version: "0.9.4.1"
 slug: "visitors_addon"
 panel_icon: mdi:clipboard-account-outline
 init: false
