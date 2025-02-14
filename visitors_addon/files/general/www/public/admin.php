@@ -67,9 +67,23 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
         $stmt = $conn->prepare("SELECT * FROM visitors ORDER BY timestamp DESC LIMIT 100");
         $stmt->execute();
         
+        echo "<!DOCTYPE html>";
+        echo "<html lang='en'>";
+        echo "<head>";
+        echo "<meta charset='UTF-8'>";
+        echo "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+        echo "<title>Admin Panel - Visitors Sign-in</title>";
+        echo "<link rel='stylesheet' href='https://unpkg.com/@picocss/pico@latest/css/pico.min.css'>";
+        echo "<link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>";
+        echo "<style>";
+        echo file_get_contents(__DIR__ . '/admin.php', false, null, strpos(file_get_contents(__DIR__ . '/admin.php'), '<style>') + 7, strpos(file_get_contents(__DIR__ . '/admin.php'), '</style>') - strpos(file_get_contents(__DIR__ . '/admin.php'), '<style>') - 7);
+        echo "</style>";
+        echo "</head>";
+        echo "<body>";
+        echo "<main class='container'>";
         echo "<div class='admin-header'>";
         echo "<h2>Visitor Activity</h2>";
-        echo "<a href='?logout=1' class='logout-btn'>Logout</a>";
+        echo "<a href='?logout=1' class='logout-btn'><span class='material-icons'>logout</span> Logout</a>";
         echo "</div>";
         
         if ($stmt->rowCount() > 0) {
@@ -100,16 +114,9 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
             }
             echo "</tbody>";
             echo "</table>";
-            
-            // Add basic CSS for better presentation
-            echo "<style>
-                  .admin-header { display: flex; justify-content: space-between; align-items: center; }
-                  .logout-btn { padding: 10px; background: #f44336; color: white; text-decoration: none; border-radius: 4px; }
-                  .visitor-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                  .visitor-table th, .visitor-table td { padding: 12px; text-align: left; border: 1px solid #ddd; }
-                  .visitor-table thead { background-color: #f5f5f5; }
-                  .visitor-table tr:nth-child(even) { background-color: #f9f9f9; }
-                  </style>";
+            echo "</main>";
+            echo "</body>";
+            echo "</html>";
         } else {
             echo "<p>No visitor activity found.</p>";
         }
@@ -121,61 +128,152 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
     // Display login form with error handling
     ?>
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>Admin Access</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Access - Visitors Sign-in</title>
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <style>
+            :root {
+                --spacing: 1rem;
+                --typography-spacing-vertical: 1.5rem;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+                background: var(--background-color);
+                color: var(--color);
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                color: var(--h1-color);
+                margin-bottom: var(--typography-spacing-vertical);
+            }
+
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: var(--spacing);
+                box-sizing: border-box;
+            }
+
+            @media (min-width: 769px) {
+                .container {
+                    max-width: 1130px;
+                    margin: 0 auto;
+                }
+            }
+
             .login-container {
                 max-width: 400px;
-                margin: 50px auto;
-                padding: 20px;
-                border: 1px solid #ddd;
-                border-radius: 5px;
+                margin: calc(var(--spacing) * 3) auto;
             }
+
+            article {
+                background: var(--card-background-color);
+                padding: var(--block-spacing-vertical) var(--block-spacing-horizontal);
+                border-radius: var(--border-radius);
+            }
+
             .error-message {
-                color: #f44336;
-                margin-bottom: 15px;
+                color: var(--del-color);
+                margin-bottom: var(--spacing);
+                padding: var(--spacing);
+                background: var(--card-sectionning-background-color);
+                border-radius: var(--border-radius);
             }
-            .form-group {
-                margin-bottom: 15px;
+
+            .admin-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: calc(var(--spacing) * 2);
             }
-            label {
-                display: block;
-                margin-bottom: 5px;
+            button .material-icons,
+            .logout-btn .material-icons {
+                font-size: 20px;
+                margin-right: 0.5rem;
+                vertical-align: text-bottom;
             }
-            input[type="password"] {
+            .logout-btn {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.75rem 1rem;
+                background: var(--del-color);
+                color: var(--contrast);
+                border-radius: var(--border-radius);
+                text-decoration: none;
+                transition: background-color 0.2s ease;
+            }
+            .logout-btn:hover {
+                background: var(--del-color-hover);
+                color: var(--contrast);
+            }
+            button[type="submit"] {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .visitor-table {
+                margin-top: calc(var(--spacing) * 2);
                 width: 100%;
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
+                border-collapse: collapse;
+                background: var(--card-background-color);
+                border-radius: var(--border-radius);
+                overflow: hidden;
             }
-            button {
-                background: #4CAF50;
-                color: white;
-                padding: 10px 15px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
+
+            .visitor-table th, 
+            .visitor-table td {
+                text-align: left;
+                padding: var(--spacing);
+                border: 1px solid var(--card-border-color);
             }
-            button:hover {
-                background: #45a049;
+
+            .visitor-table thead {
+                background-color: var(--card-sectionning-background-color);
+            }
+
+            .visitor-table thead th {
+                color: var(--h3-color);
+                font-weight: 600;
+            }
+
+            .visitor-table tbody tr:nth-child(even) {
+                background-color: var(--card-sectionning-background-color);
+            }
+
+            .visitor-table tbody tr:hover {
+                background-color: var(--card-background-color);
             }
         </style>
     </head>
     <body>
-        <div class="login-container">
-            <h2>Admin Access</h2>
-            <?php if (isset($error_message)): ?>
-                <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
-            <?php endif; ?>
-            <form method="post" autocomplete="off">
-                <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit">Login</button>
-            </form>
-        </div>
+        <main class="container">
+            <div class="login-container">
+                <article>
+                    <h2>Admin Access</h2>
+                    <?php if (isset($error_message)): ?>
+                        <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
+                    <?php endif; ?>
+                    <form method="post" autocomplete="off">
+                        <div class="grid">
+                            <label for="password">
+                                Password
+                                <input type="password" id="password" name="password" required>
+                            </label>
+                        </div>
+                        <button type="submit" class="contrast">
+                            <span class="material-icons">login</span>
+                            Login
+                        </button>
+                    </form>
+                </article>
+            </div>
+        </main>
     </body>
     </html>
     <?php
