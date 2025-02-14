@@ -11,7 +11,6 @@ ini_set('session.cookie_samesite', 'Strict');
 
 // Security headers
 header("X-Content-Type-Options: nosniff");
-header("X-Frame-Options: DENY");
 header("X-XSS-Protection: 1; mode=block");
 header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
 header("Referrer-Policy: strict-origin-when-cross-origin");
