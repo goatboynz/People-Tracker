@@ -100,31 +100,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     elseif ($action == 'search_for_sign_out') {
-        $searchTerm = $_POST['searchTerm']; // Assuming you'll add proper escaping/sanitization
-        $today = date('Y-m-d');
-
-        $sql = "SELECT id, name FROM visitors 
-                WHERE name LIKE '$searchTerm%' AND DATE(timestamp) = '$today' AND sign_out_timestamp IS NULL";
-        $result = $conn->query($sql);
-
-        if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
-            do {
-                echo "<button type='button' class='sign-out-button' data-visitor-id='{$row['id']}'>{$row['name']}</button><br>";
-            } while ($row = $result->fetch(PDO::FETCH_ASSOC));
-        } else {
-            echo "No matching visitors found.";
+        try {
+            $searchTerm = $_POST['searchTerm'];
+            $today = date('Y-m-d');
+            
+            // Use prepared statement to prevent SQL injection
+            $sql = "SELECT id, name FROM visitors 
+                    WHERE name LIKE :searchTerm 
+                    AND DATE(timestamp) = :today 
+                    AND sign_out_timestamp IS NULL";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->bindValue(':searchTerm', $searchTerm . '%');
+            $stmt->bindValue(':today', $today);
+            $stmt->execute();
+            
+            $found = false;
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $found = true;
+                // Escape output for XSS prevention
+                $id = htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8');
+                $name = htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8');
+                echo "<button type='button' class='sign-out-button' data-visitor-id='{$id}'>{$name}</button><br>";
+            }
+            
+            if (!$found) {
+                echo "No matching visitors found.";
+            }
+        } catch(PDOException $e) {
+            error_log("Search error: " . $e->getMessage());
+            echo "An error occurred while searching for visitors.";
         }
     }
     elseif ($action == 'sign_out') {
-        $visitorId = (int)$_POST['visitorId'];
-        $signoutTimestamp = date('Y-m-d H:i:s');
-
-        $sql = "UPDATE visitors SET sign_out_timestamp = '$signoutTimestamp' WHERE id = $visitorId";
-
-        if ($conn->exec($sql)) {
-            echo "Sign-out successful!";
-        } else {
-            echo "Error: " . $conn->lastErrorMsg();
+        try {
+            $visitorId = filter_var($_POST['visitorId'], FILTER_VALIDATE_INT);
+            if ($visitorId === false) {
+                throw new Exception("Invalid visitor ID");
+            }
+            
+            $signoutTimestamp = date('Y-m-d H:i:s');
+            
+            // Use prepared statement for the update
+            $sql = "UPDATE visitors SET sign_out_timestamp = :timestamp WHERE id = :id";
+            $stmt = $conn->prepare($sql);
+            $stmt->bindParam(':timestamp', $signoutTimestamp);
+            $stmt->bindParam(':id', $visitorId);
+            
+            if ($stmt->execute()) {
+                if ($stmt->rowCount() > 0) {
+                    echo "Sign-out successful!";
+                } else {
+                    echo "No visitor found with the provided ID.";
+                }
+            } else {
+                throw new Exception("Failed to update sign-out time");
+            }
+        } catch(Exception $e) {
+            error_log("Sign-out error: " . $e->getMessage());
+            echo "An error occurred during sign-out.";
         }
     }
 }
