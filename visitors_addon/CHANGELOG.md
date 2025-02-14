@@ -1,3 +1,9 @@
+## 0.9.4
+
+- Bugfixes (spaces in names etc)
+- Security improvements
+- UI improvements, especially to admin
+
 ## 0.9.3
 
 - Fixed duplicate insertion of Terms
