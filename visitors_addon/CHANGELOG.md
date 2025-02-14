@@ -1,3 +1,7 @@
+## 0.9.4.1
+
+- Revert overzealous header changes
+
 ## 0.9.4
 
 - Bugfixes (spaces in names etc)
