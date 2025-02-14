@@ -12,17 +12,24 @@ ini_set('session.cookie_samesite', 'Strict');
 // Security headers
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
 header("Referrer-Policy: strict-origin-when-cross-origin");
 
 // Constants for rate limiting
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 300); // 5 minutes in seconds
 
-// Get admin password from environment variable with fallback
-$adminPassword = getenv('ADMIN_PASSWORD');
-if (!$adminPassword) {
-    error_log("Warning: ADMIN_PASSWORD environment variable not set, using default");
+// Get admin password from Home Assistant addon config
+$configPath = '/visitors_config/options.json';
+if (file_exists($configPath)) {
+    $config = json_decode(file_get_contents($configPath), true);
+    $adminPassword = $config['admin_password'] ?? null;
+    if (!$adminPassword) {
+        error_log("Warning: admin_password not found in config, using default");
+        $adminPassword = "SetSomethingStrongHere";
+    }
+} else {
+    error_log("Warning: Config file not found at $configPath, using default password");
     $adminPassword = "SetSomethingStrongHere";
 }
 
