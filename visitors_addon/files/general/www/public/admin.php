@@ -62,64 +62,99 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
     try {
         $conn = new PDO("sqlite:" . $dbfile);
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        
-        // Use prepared statement for fetching visitors
         $stmt = $conn->prepare("SELECT * FROM visitors ORDER BY timestamp DESC LIMIT 100");
         $stmt->execute();
-        
-        echo "<!DOCTYPE html>";
-        echo "<html lang='en'>";
-        echo "<head>";
-        echo "<meta charset='UTF-8'>";
-        echo "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-        echo "<title>Admin Panel - Visitors Sign-in</title>";
-        echo "<link rel='stylesheet' href='https://unpkg.com/@picocss/pico@latest/css/pico.min.css'>";
-        echo "<link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>";
-        echo "<style>";
-        echo file_get_contents(__DIR__ . '/admin.php', false, null, strpos(file_get_contents(__DIR__ . '/admin.php'), '<style>') + 7, strpos(file_get_contents(__DIR__ . '/admin.php'), '</style>') - strpos(file_get_contents(__DIR__ . '/admin.php'), '<style>') - 7);
-        echo "</style>";
-        echo "</head>";
-        echo "<body>";
-        echo "<main class='container'>";
-        echo "<div class='admin-header'>";
-        echo "<h2>Visitor Activity</h2>";
-        echo "<a href='?logout=1' class='logout-btn'><span class='material-icons'>logout</span> Logout</a>";
-        echo "</div>";
-        
-        if ($stmt->rowCount() > 0) {
-            echo "<table class='visitor-table'>";
-            echo "<thead>";
-            echo "<tr>";
-            echo "<th>Name</th>";
-            echo "<th>Contact #</th>";
-            echo "<th>Company</th>";
-            echo "<th>Visiting</th>";
-            echo "<th>Sign-In Time</th>";
-            echo "<th>Sign-Out Time</th>";
-            echo "</tr>";
-            echo "</thead>";
-            echo "<tbody>";
-            
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo "<tr>";
-                foreach (['name', 'contact', 'company', 'visiting', 'timestamp'] as $field) {
-                    echo "<td>" . htmlspecialchars($row[$field], ENT_QUOTES, 'UTF-8') . "</td>";
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Admin Panel - Visitors Sign-in</title>
+            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+            <style>
+
+                .container {
+                    /* max-width: 1100px; */
+                    margin: 40px auto;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
                 }
-                echo "<td>" . 
-                     ($row["sign_out_timestamp"] ? 
-                      htmlspecialchars($row["sign_out_timestamp"], ENT_QUOTES, 'UTF-8') : 
-                      "N/A") . 
-                     "</td>";
-                echo "</tr>";
-            }
-            echo "</tbody>";
-            echo "</table>";
-            echo "</main>";
-            echo "</body>";
-            echo "</html>";
-        } else {
-            echo "<p>No visitor activity found.</p>";
-        }
+                .visitor-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+                .visitor-table thead {
+                    background: #007bff;
+                    color: white;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                }
+                .visitor-table th, .visitor-table td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                }
+                .visitor-table tbody tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .visitor-table tbody tr:hover {
+                    background: #e1f5fe;
+                }
+                @media (max-width: 768px) {
+                    .visitor-table th, .visitor-table td {
+                        padding: 8px;
+                        font-size: 14px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                
+                <a href="?logout=1" class="contrast">Logout</a>
+            </div>
+            <main class="container">
+                <h2>Visitor Activity</h2>
+                <div style="overflow-x:auto;">
+                <?php if (count($results) > 0): ?>
+                    <table class="visitor-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact #</th>
+                                <th>Company</th>
+                                <th>Visiting</th>
+                                <th>Sign-In Time</th>
+                                <th>Sign-Out Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($results as $row): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($row['name']) ?></td>
+                                    <td><?= htmlspecialchars($row['contact']) ?></td>
+                                    <td><?= htmlspecialchars($row['company']) ?></td>
+                                    <td><?= htmlspecialchars($row['visiting']) ?></td>
+                                    <td><?= htmlspecialchars($row['timestamp']) ?></td>
+                                    <td><?= !empty($row["sign_out_timestamp"]) ? htmlspecialchars($row["sign_out_timestamp"]) : "N/A" ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <p>No visitor activity found.</p>
+                    <?php endif; ?>
+                </div>
+            </main>
+        </body>
+        </html>
+        <?php
     } catch(PDOException $e) {
         error_log("Database error: " . $e->getMessage());
         echo "<p class='error'>An error occurred while fetching visitor data.</p>";
@@ -139,115 +174,130 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
             :root {
                 --spacing: 1rem;
                 --typography-spacing-vertical: 1.5rem;
+                --primary-color: #007bff;
+                --text-align: center;
+                --danger-color: #dc3545;
+                --text-color: #333;
+                --card-background: #fff;
+                --border-radius: 8px;
+                --table-header-bg: #007bff;
+                --table-header-color: #fff;
             }
-            
+
             body {
                 margin: 0;
                 padding: 0;
+                font-family: Arial, sans-serif;
                 background: var(--background-color);
-                color: var(--color);
-            }
-
-            h1, h2, h3, h4, h5, h6 {
-                color: var(--h1-color);
-                margin-bottom: var(--typography-spacing-vertical);
+                color: var(--text-color);
             }
 
             .container {
-                width: 100%;
-                max-width: 100%;
-                padding: var(--spacing);
-                box-sizing: border-box;
+                width: 90%;
+                max-width: 1100px;
+                margin: 40px auto;
             }
 
-            @media (min-width: 769px) {
-                .container {
-                    max-width: 1130px;
-                    margin: 0 auto;
-                }
-            }
-
-            .login-container {
-                max-width: 400px;
-                margin: calc(var(--spacing) * 3) auto;
-            }
-
-            article {
-                background: var(--card-background-color);
-                padding: var(--block-spacing-vertical) var(--block-spacing-horizontal);
-                border-radius: var(--border-radius);
-            }
-
-            .error-message {
-                color: var(--del-color);
-                margin-bottom: var(--spacing);
-                padding: var(--spacing);
-                background: var(--card-sectionning-background-color);
-                border-radius: var(--border-radius);
+            h2 {
+                color: var(--primary-color);
+                text-align: center;
             }
 
             .admin-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: calc(var(--spacing) * 2);
+                margin-bottom: 20px;
             }
-            button .material-icons,
-            .logout-btn .material-icons {
-                font-size: 20px;
-                margin-right: 0.5rem;
-                vertical-align: text-bottom;
-            }
+
             .logout-btn {
-                display: inline-flex;
+                display: flex;
                 align-items: center;
-                padding: 0.75rem 1rem;
-                background: var(--del-color);
-                color: var(--contrast);
+                padding: 10px 15px;
+                background: var(--danger-color);
+                color: white;
                 border-radius: var(--border-radius);
                 text-decoration: none;
-                transition: background-color 0.2s ease;
+                font-weight: bold;
+                transition: 0.3s;
             }
+
             .logout-btn:hover {
-                background: var(--del-color-hover);
-                color: var(--contrast);
+                background: #c82333;
             }
-            button[type="submit"] {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+
+            .material-icons {
+                margin-right: 5px;
+                vertical-align: middle;
             }
+
             .visitor-table {
-                margin-top: calc(var(--spacing) * 2);
                 width: 100%;
                 border-collapse: collapse;
-                background: var(--card-background-color);
+                background: var(--card-background);
                 border-radius: var(--border-radius);
                 overflow: hidden;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
             }
 
-            .visitor-table th, 
-            .visitor-table td {
+            .visitor-table th {
+                background: var(--table-header-bg);
+                color: var(--table-header-color);
+                padding: 12px;
                 text-align: left;
-                padding: var(--spacing);
-                border: 1px solid var(--card-border-color);
             }
 
-            .visitor-table thead {
-                background-color: var(--card-sectionning-background-color);
-            }
-
-            .visitor-table thead th {
-                color: var(--h3-color);
-                font-weight: 600;
+            .visitor-table td {
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
             }
 
             .visitor-table tbody tr:nth-child(even) {
-                background-color: var(--card-sectionning-background-color);
+                background: #f9f9f9;
             }
 
             .visitor-table tbody tr:hover {
-                background-color: var(--card-background-color);
+                background: #e1f5fe;
+            }
+
+            .login-container {
+                max-width: 400px;
+                margin: 80px auto;
+                background: var(--card-background);
+                padding: 20px;
+                border-radius: var(--border-radius);
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            input[type="password"] {
+                width: 100%;
+                padding: 10px;
+                margin-top: 5px;
+                border-radius: var(--border-radius);
+                border: 1px solid #ccc;
+            }
+
+            button {
+                width: 100%;
+                background: var(--primary-color);
+                color: white;
+                padding: 12px;
+                border: none;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            button:hover {
+                background: #0056b3;
+            }
+
+            .error-message {
+                color: var(--danger-color);
+                background: #f8d7da;
+                padding: 10px;
+                border-radius: var(--border-radius);
+                margin-bottom: 15px;
             }
         </style>
     </head>
