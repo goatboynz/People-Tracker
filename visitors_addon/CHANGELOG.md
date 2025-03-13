@@ -1,3 +1,7 @@
+## 0.9.5.1
+
+- Bugfixes and improved user log-out selection
+
 ## 0.9.5
 
 - Added admin_password configuration option in addon settings
