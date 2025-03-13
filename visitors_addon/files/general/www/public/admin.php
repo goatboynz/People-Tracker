@@ -43,7 +43,7 @@ function process_login($password) {
 // Check if logged out
 if (isset($_GET['logout'])) {
     session_destroy();
-    header('Location: ' . $_SERVER['PHP_SELF']);
+    header('Location: index.html');
     exit;
 }
 
