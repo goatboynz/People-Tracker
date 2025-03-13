@@ -105,13 +105,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $today = date('Y-m-d');
             
             // Use prepared statement to prevent SQL injection
-            $sql = "SELECT id, name FROM visitors 
+            $sql = "SELECT id, name, contact, timestamp FROM visitors 
                     WHERE name LIKE :searchTerm 
                     AND DATE(timestamp) = :today 
                     AND sign_out_timestamp IS NULL";
             
             $stmt = $conn->prepare($sql);
-            $stmt->bindValue(':searchTerm', $searchTerm . '%');
+            $stmt->bindValue(':searchTerm', '%' . $searchTerm . '%'); 
             $stmt->bindValue(':today', $today);
             $stmt->execute();
             
@@ -121,7 +121,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Escape output for XSS prevention
                 $id = htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8');
                 $name = htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8');
-                echo "<button type='button' class='sign-out-button' data-visitor-id='{$id}'>{$name}</button><br>";
+                $contact = htmlspecialchars($row['contact'], ENT_QUOTES, 'UTF-8');
+                $timestamp = htmlspecialchars($row['timestamp'], ENT_QUOTES, 'UTF-8');
+    
+                echo "<button type='button' class='sign-out-button' data-visitor-id='{$id}'>
+                        {$name} (📞 {$contact}, ⏰ {$timestamp})
+                      </button><br>";
             }
             
             if (!$found) {
