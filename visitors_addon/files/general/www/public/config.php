@@ -1,4 +1,7 @@
 <?php
+
+date_default_timezone_set('Pacific/Auckland');
+
 // Error reporting - disable in production
 ini_set('display_errors', 0);
 error_reporting(E_ALL);

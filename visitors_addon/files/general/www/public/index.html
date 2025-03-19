@@ -134,8 +134,9 @@
                     success: function(response) {
                         alert(response);
                         // Clear the sign-out options and the search input
-                        $('#sign-out-options').empty();
-                        $('#sign-out-name').val('');
+                        // $('#sign-out-options').empty();
+                        // $('#sign-out-name').val('');
+                        location.reload();
                     }
                 });
             });
