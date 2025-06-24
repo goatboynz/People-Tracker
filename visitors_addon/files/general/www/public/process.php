@@ -15,6 +15,27 @@ try {
     $conn->beginTransaction();
 
     $conn->exec("
+        CREATE TABLE IF NOT EXISTS custom_fields (
+            id INTEGER PRIMARY KEY,
+            field_name TEXT NOT NULL,
+            field_type TEXT NOT NULL,
+            is_required INTEGER DEFAULT 0,
+            display_order INTEGER NOT NULL
+        )
+    ");
+
+    $conn->exec("
+        CREATE TABLE IF NOT EXISTS visitor_data (
+            id INTEGER PRIMARY KEY,
+            visitor_id INTEGER,
+            field_id INTEGER,
+            field_value TEXT,
+            FOREIGN KEY(visitor_id) REFERENCES visitors(id),
+            FOREIGN KEY(field_id) REFERENCES custom_fields(id)
+        )
+    ");
+
+    $conn->exec("
         CREATE TABLE IF NOT EXISTS visitors (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -22,7 +43,9 @@ try {
             company TEXT,
             visiting TEXT NOT NULL,
             timestamp DATETIME NOT NULL,
-            sign_out_timestamp DATETIME
+            sign_out_timestamp DATETIME,
+            photo_path TEXT,
+            signature_path TEXT
         )
     ");
 
@@ -63,7 +86,59 @@ try {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST['action'];
 
-    if ($action == 'get_terms') {
+    if ($action == 'get_custom_fields') {
+        try {
+            $stmt = $conn->query("SELECT * FROM custom_fields ORDER BY display_order");
+            $fields = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($fields as $field) {
+                $required = $field['is_required'] ? 'required' : '';
+                echo "<label for='field_{$field['id']}'>" . htmlspecialchars($field['field_name']) . ":</label>";
+                echo "<input type='{$field['field_type']}' id='field_{$field['id']}' ";
+                echo "class='custom-field' data-field-id='{$field['id']}' {$required}><br>";
+            }
+        } catch(PDOException $e) {
+            echo "Error loading custom fields: " . $e->getMessage();
+        }
+    }
+    elseif ($action == 'add_field') {
+        $field_name = sanitize_input($_POST['field_name']);
+        $field_type = sanitize_input($_POST['field_type']);
+        $is_required = isset($_POST['is_required']) ? 1 : 0;
+        $display_order = (int)$_POST['display_order'];
+
+        try {
+            $stmt = $conn->prepare("INSERT INTO custom_fields (field_name, field_type, is_required, display_order) VALUES (:name, :type, :required, :order)");
+            $stmt->execute([
+                ':name' => $field_name,
+                ':type' => $field_type,
+                ':required' => $is_required,
+                ':order' => $display_order
+            ]);
+            header('Location: admin.php');
+            exit;
+        } catch(PDOException $e) {
+            echo "Error adding field: " . $e->getMessage();
+        }
+    }
+    elseif ($action == 'delete_field') {
+        $field_id = (int)$_POST['field_id'];
+        try {
+            // First delete any visitor data associated with this field
+            $stmt = $conn->prepare("DELETE FROM visitor_data WHERE field_id = :id");
+            $stmt->execute([':id' => $field_id]);
+            
+            // Then delete the field itself
+            $stmt = $conn->prepare("DELETE FROM custom_fields WHERE id = :id");
+            $stmt->execute([':id' => $field_id]);
+            
+            header('Location: admin.php');
+            exit;
+        } catch(PDOException $e) {
+            echo "Error deleting field: " . $e->getMessage();
+        }
+    }
+    elseif ($action == 'get_terms') {
         $sql = "SELECT term_text FROM terms";
         $result = $conn->query($sql);
 
@@ -94,6 +169,53 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         try {
             $stmt->execute();
+            $visitorId = $conn->lastInsertId();
+
+            // Handle photo upload if provided
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = 'uploads/photos/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                $photoName = 'photo_' . $visitorId . '_' . time() . '.jpg';
+                $photoPath = $uploadDir . $photoName;
+                move_uploaded_file($_FILES['photo']['tmp_name'], $photoPath);
+                
+                $sql = "UPDATE visitors SET photo_path = :photo_path WHERE id = :id";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([':photo_path' => $photoPath, ':id' => $visitorId]);
+            }
+
+            // Handle signature if provided
+            if (isset($_POST['signature']) && !empty($_POST['signature'])) {
+                $uploadDir = 'uploads/signatures/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                $signatureName = 'signature_' . $visitorId . '_' . time() . '.png';
+                $signaturePath = $uploadDir . $signatureName;
+                $signatureData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $_POST['signature']));
+                file_put_contents($signaturePath, $signatureData);
+
+                $sql = "UPDATE visitors SET signature_path = :signature_path WHERE id = :id";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([':signature_path' => $signaturePath, ':id' => $visitorId]);
+            }
+
+            // Handle custom fields
+            if (isset($_POST['custom_fields']) && is_array($_POST['custom_fields'])) {
+                $sql = "INSERT INTO visitor_data (visitor_id, field_id, field_value) VALUES (:visitor_id, :field_id, :field_value)";
+                $stmt = $conn->prepare($sql);
+
+                foreach ($_POST['custom_fields'] as $fieldId => $value) {
+                    $stmt->execute([
+                        ':visitor_id' => $visitorId,
+                        ':field_id' => $fieldId,
+                        ':field_value' => $value
+                    ]);
+                }
+            }
+
             echo "Sign-in successful!";
         } catch(PDOException $e) {
             echo "Error: " . $e->getMessage();

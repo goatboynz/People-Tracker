@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facility visitor sign-in by Chill Division</title>
+    <title>Facility visitor sign-in by Mediflower</title>
     <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
     <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #E8F5E9;
+            --accent-color: #2E7D32;
+            --text-color: #333333;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -33,14 +40,46 @@
             top: 10px;
             right: 10px;
             text-decoration: none;
-            color: #333; /* Matches the general theme */
+            color: var(--primary-color);
         }
         .admin-link:hover {
-            color: #000; /* Darkens on hover for better visibility */
+            color: var(--accent-color);
         }
-        .material-icons {
-            font-size: 24px; /* Size of the icon */
+
+        button {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
         }
+
+        button:hover {
+            background-color: var(--accent-color) !important;
+            border-color: var(--accent-color) !important;
+        }
+
+            input:focus {
+                border-color: var(--primary-color) !important;
+            }
+            .signature-container {
+                border: 1px solid #ccc;
+                border-radius: var(--border-radius);
+                margin: 1rem 0;
+                padding: 1rem;
+            }
+            #signature-pad {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                width: 100%;
+                height: 200px;
+                background-color: #fff;
+            }
+            #clear-signature {
+                margin-top: 10px;
+                width: auto;
+                padding: 5px 10px;
+            }
+            .material-icons {
+                font-size: 24px; /* Size of the icon */
+            }
     </style>
 </head>
 <body>
@@ -50,7 +89,7 @@
     </a>
 
     <main class="container">
-        <h1>Facility visitor sign-in by Chill Division</h1>
+        <h1>Facility visitor sign-in by Mediflower</h1>
         <form id="sign-in-form">
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required><br>
@@ -63,6 +102,19 @@
 
             <label for="visiting">Visiting:</label>
             <input type="text" id="visiting" name="visiting" required><br>
+
+            <div id="custom_fields">
+                <!-- Custom fields will be loaded here -->
+            </div>
+
+            <label for="photo">Photo (Optional):</label>
+            <input type="file" id="photo" name="photo" accept="image/*" capture="user"><br>
+
+            <label>Signature (Optional):</label>
+            <div class="signature-container">
+                <canvas id="signature-pad"></canvas>
+                <button type="button" id="clear-signature">Clear Signature</button>
+            </div>
 
             <div id="terms"></div>
 
@@ -77,6 +129,25 @@
 
     <script>
         $(document).ready(function() {
+            // Initialize signature pad
+            const canvas = document.getElementById('signature-pad');
+            const signaturePad = new SignaturePad(canvas);
+
+            // Handle clear signature button
+            $('#clear-signature').click(function() {
+                signaturePad.clear();
+            });
+
+            // Load custom fields
+            $.ajax({
+                url: 'process.php',
+                type: 'POST',
+                data: { action: 'get_custom_fields' },
+                success: function(response) {
+                    $('#custom_fields').html(response);
+                }
+            });
+
             // Fetch and display terms on page load
             $.ajax({
                 url: 'process.php',
@@ -91,11 +162,23 @@
             $('#sign-in-form').submit(function(event) {
                 event.preventDefault();
 
-                // Gather form data including checked terms
-                var formData = $(this).serializeArray();
-                formData.push({ name: 'action', value: 'sign_in' });
+                // Create FormData object for file upload
+                var formData = new FormData(this);
+                formData.append('action', 'sign_in');
+
+                // Add signature if drawn
+                if (!signaturePad.isEmpty()) {
+                    formData.append('signature', signaturePad.toDataURL());
+                }
+
+                // Add custom fields
+                $('.custom-field').each(function() {
+                    formData.append('custom_fields[' + $(this).data('field-id') + ']', $(this).val());
+                });
 
                 $.ajax({
+                    processData: false,
+                    contentType: false,
                     url: 'process.php',
                     type: 'POST',
                     data: formData,

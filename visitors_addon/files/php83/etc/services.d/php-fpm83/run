@@ -1,2 +1,6 @@
-#!/usr/bin/with-contenv sh
-exec php-fpm83 -R
+#!/usr/bin/with-contenv bashio
+
+mkdir -p /tmp/sessions
+chown nginx:nginx /tmp/sessions
+
+exec php-fpm83 --nodaemonize

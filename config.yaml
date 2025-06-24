@@ -1,0 +1,25 @@
+visitors:
+  name: Mediflower Visitor Management
+  version: "1.0.0"
+  slug: visitors_addon
+  description: Medical facility visitor sign-in management system with photo capture and digital signatures
+  url: https://github.com/goatboynz/People-Tracker
+  arch:
+    - aarch64
+    - amd64
+    - armhf
+    - armv7
+    - i386
+  startup: application
+  webui: http://[HOST]:[PORT:8420]
+  ingress: true
+  ingress_port: 8420
+  panel_icon: mdi:clipboard-account-outline
+  panel_title: Mediflower Visitors
+  init: false
+  map:
+    - addon_config:read_only:false
+  options:
+    admin_password: "SetSomethingStrongHere"
+  schema:
+    admin_password: str?

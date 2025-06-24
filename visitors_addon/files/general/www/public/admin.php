@@ -62,7 +62,22 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
     try {
         $conn = new PDO("sqlite:" . $dbfile);
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $conn->prepare("SELECT * FROM visitors ORDER BY timestamp DESC LIMIT 100");
+        
+        // Get custom fields
+        $customFields = $conn->query("SELECT id, field_name FROM custom_fields ORDER BY display_order")->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get visitors with custom field data
+        $stmt = $conn->prepare("
+            SELECT 
+                v.*, 
+                GROUP_CONCAT(vd.field_value, '|') as custom_values,
+                GROUP_CONCAT(vd.field_id, '|') as field_ids
+            FROM visitors v
+            LEFT JOIN visitor_data vd ON v.id = vd.visitor_id
+            GROUP BY v.id
+            ORDER BY v.timestamp DESC 
+            LIMIT 100
+        ");
         $stmt->execute();
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         ?>
@@ -71,9 +86,64 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Admin Panel - Visitors Sign-in</title>
+            <title>Admin Panel - Mediflower Visitors Sign-in</title>
             <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
             <style>
+                :root {
+                    --primary-color: #4CAF50;
+                    --secondary-color: #E8F5E9;
+                    --accent-color: #2E7D32;
+                    --text-color: #333333;
+                }
+
+                .field-management {
+                    background: var(--secondary-color);
+                    padding: 20px;
+                    border-radius: var(--border-radius);
+                    margin-bottom: 30px;
+                }
+
+                .field-management form {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                }
+
+                .field-management button {
+                    margin-top: 20px;
+                }
+
+                .custom-fields-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                    background: white;
+                    border-radius: var(--border-radius);
+                    overflow: hidden;
+                }
+
+                .custom-fields-table th {
+                    background: var(--primary-color);
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                }
+
+                .custom-fields-table td {
+                    padding: 10px;
+                    border-bottom: 1px solid #ddd;
+                }
+
+                .delete-btn {
+                    background: var(--danger-color) !important;
+                    padding: 5px 10px !important;
+                    font-size: 14px !important;
+                    width: auto !important;
+                }
+
+                .delete-btn:hover {
+                    background: #c82333 !important;
+                }
 
                 .container {
                     /* max-width: 1100px; */
@@ -89,7 +159,7 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
                     overflow: hidden;
                 }
                 .visitor-table thead {
-                    background: #007bff;
+                    background: var(--primary-color);
                     color: white;
                     position: sticky;
                     top: 0;
@@ -116,10 +186,83 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
         </head>
         <body>
             <div class="container">
-                
-                <a href="?logout=1" class="contrast">Logout</a>
+                <div class="admin-header">
+                    <h1>Admin Dashboard</h1>
+                    <a href="?logout=1" class="contrast logout-btn">Logout</a>
+                </div>
             </div>
             <main class="container">
+                <h2>Custom Fields Management</h2>
+                <div class="field-management">
+                    <form id="add-field-form" method="post" action="process.php">
+                        <input type="hidden" name="action" value="add_field">
+                        <div class="grid">
+                            <label>
+                                Field Name:
+                                <input type="text" name="field_name" required>
+                            </label>
+                            <label>
+                                Field Type:
+                                <select name="field_type" required>
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="email">Email</option>
+                                    <option value="tel">Phone</option>
+                                    <option value="date">Date</option>
+                                </select>
+                            </label>
+                            <label>
+                                Required:
+                                <input type="checkbox" name="is_required">
+                            </label>
+                            <label>
+                                Display Order:
+                                <input type="number" name="display_order" required>
+                            </label>
+                        </div>
+                        <button type="submit">Add Field</button>
+                    </form>
+                </div>
+
+                <h3>Current Custom Fields</h3>
+                <div class="custom-fields-list">
+                    <?php
+                    $stmt = $conn->query("SELECT * FROM custom_fields ORDER BY display_order");
+                    $fields = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    if (count($fields) > 0): ?>
+                        <table class="custom-fields-table">
+                            <thead>
+                                <tr>
+                                    <th>Field Name</th>
+                                    <th>Type</th>
+                                    <th>Required</th>
+                                    <th>Order</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($fields as $field): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($field['field_name']) ?></td>
+                                        <td><?= htmlspecialchars($field['field_type']) ?></td>
+                                        <td><?= $field['is_required'] ? 'Yes' : 'No' ?></td>
+                                        <td><?= htmlspecialchars($field['display_order']) ?></td>
+                                        <td>
+                                            <form method="post" action="process.php" style="display: inline;">
+                                                <input type="hidden" name="action" value="delete_field">
+                                                <input type="hidden" name="field_id" value="<?= $field['id'] ?>">
+                                                <button type="submit" class="delete-btn">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <p>No custom fields defined yet.</p>
+                    <?php endif; ?>
+                </div>
+
                 <h2>Visitor Activity</h2>
                 <div style="overflow-x:auto;">
                 <?php if (count($results) > 0): ?>
@@ -130,6 +273,11 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
                                 <th>Contact #</th>
                                 <th>Company</th>
                                 <th>Visiting</th>
+                                <?php foreach ($customFields as $field): ?>
+                                    <th><?= htmlspecialchars($field['field_name']) ?></th>
+                                <?php endforeach; ?>
+                                <th>Photo</th>
+                                <th>Signature</th>
                                 <th>Sign-In Time</th>
                                 <th>Sign-Out Time</th>
                             </tr>
@@ -141,6 +289,29 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
                                     <td><?= htmlspecialchars($row['contact']) ?></td>
                                     <td><?= htmlspecialchars($row['company']) ?></td>
                                     <td><?= htmlspecialchars($row['visiting']) ?></td>
+                                    <?php 
+                                    $customValues = $row['custom_values'] ? explode('|', $row['custom_values']) : [];
+                                    $fieldIds = $row['field_ids'] ? explode('|', $row['field_ids']) : [];
+                                    foreach ($customFields as $field): 
+                                        $index = array_search($field['id'], $fieldIds);
+                                        $value = ($index !== false && isset($customValues[$index])) ? $customValues[$index] : 'N/A';
+                                    ?>
+                                        <td><?= htmlspecialchars($value) ?></td>
+                                    <?php endforeach; ?>
+                                    <td>
+                                        <?php if (!empty($row['photo_path'])): ?>
+                                            <a href="<?= htmlspecialchars($row['photo_path']) ?>" target="_blank">View Photo</a>
+                                        <?php else: ?>
+                                            No Photo
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($row['signature_path'])): ?>
+                                            <a href="<?= htmlspecialchars($row['signature_path']) ?>" target="_blank">View Signature</a>
+                                        <?php else: ?>
+                                            No Signature
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($row['timestamp']) ?></td>
                                     <td><?= !empty($row["sign_out_timestamp"]) ? htmlspecialchars($row["sign_out_timestamp"]) : "N/A" ?></td>
                                 </tr>
@@ -167,20 +338,22 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Admin Access - Visitors Sign-in</title>
+        <title>Admin Access - Mediflower Visitors Sign-in</title>
         <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <style>
             :root {
                 --spacing: 1rem;
                 --typography-spacing-vertical: 1.5rem;
-                --primary-color: #007bff;
+                --primary-color: #4CAF50;
+                --secondary-color: #E8F5E9;
+                --accent-color: #2E7D32;
                 --text-align: center;
                 --danger-color: #dc3545;
                 --text-color: #333;
                 --card-background: #fff;
                 --border-radius: 8px;
-                --table-header-bg: #007bff;
+                --table-header-bg: var(--primary-color);
                 --table-header-color: #fff;
             }
 
@@ -289,7 +462,7 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
             }
 
             button:hover {
-                background: #0056b3;
+                background: var(--accent-color);
             }
 
             .error-message {

@@ -1,29 +1,61 @@
 ARG BUILD_FROM
-FROM $BUILD_FROM
+FROM ${BUILD_FROM}
 
-WORKDIR /data
+# Install required packages
+RUN \
+    apk add --no-cache \
+        nginx \
+        php83 \
+        php83-fpm \
+        php83-pdo \
+        php83-pdo_sqlite \
+        php83-session \
+        php83-sqlite3 \
+        php83-json \
+        php83-gd
 
-RUN apk -U upgrade && apk add --no-cache \
-    curl \
-    nginx \
-    php83-fpm \
-    php83-pdo \
-    php83-pdo_sqlite \
-    php83-session \
-    sqlite \
-    && ln -s /usr/sbin/php-fpm83 /usr/sbin/php-fpm \
-    && addgroup -S php \
-    && adduser -S -G php php \
-    && rm -rf /var/cache/apk/* /etc/nginx/http.d/* /etc/php83/conf.d/* /etc/php83/php-fpm.d/* \
-    && { \
-        echo "extension=pdo.so"; \
-        echo "extension=pdo_sqlite.so"; \
-    } > /etc/php83/conf.d/20-pdo.ini \
-    && { \
-        echo "extension=session.so"; \
-    } > /etc/php83/conf.d/21-session.ini
+# Copy root filesystem
+COPY files/ /
 
-COPY files/general files/php83 /
-RUN chown php:nginx /www/public/visitor_signin.db
+# Make scripts executable
+RUN \
+    chmod a+x /etc/services.d/nginx/* && \
+    chmod a+x /etc/services.d/php-fpm83/*
 
-ENTRYPOINT ["/init"]
+# Create required directories with correct permissions
+RUN \
+    mkdir -p /var/www/public/uploads/photos && \
+    mkdir -p /var/www/public/uploads/signatures && \
+    chown -R nginx:nginx /var/www && \
+    chmod -R 755 /var/www/public/uploads
+
+WORKDIR /var/www/public
+
+# Build arguments
+ARG BUILD_ARCH
+ARG BUILD_DATE
+ARG BUILD_DESCRIPTION
+ARG BUILD_NAME
+ARG BUILD_REF
+ARG BUILD_REPOSITORY
+ARG BUILD_VERSION
+
+# Labels
+LABEL \
+    io.hass.name="${BUILD_NAME}" \
+    io.hass.description="${BUILD_DESCRIPTION}" \
+    io.hass.arch="${BUILD_ARCH}" \
+    io.hass.type="addon" \
+    io.hass.version=${BUILD_VERSION} \
+    maintainer="Mediflower" \
+    org.opencontainers.image.title="${BUILD_NAME}" \
+    org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
+    org.opencontainers.image.vendor="Mediflower Add-ons" \
+    org.opencontainers.image.authors="Mediflower" \
+    org.opencontainers.image.licenses="MIT" \
+    org.opencontainers.image.url="https://github.com/goatboynz/People-Tracker" \
+    org.opencontainers.image.source="https://github.com/goatboynz/People-Tracker" \
+    org.opencontainers.image.documentation="https://github.com/goatboynz/People-Tracker/blob/main/README.md" \
+    org.opencontainers.image.created=${BUILD_DATE} \
+    org.opencontainers.image.revision=${BUILD_REF} \
+    org.opencontainers.image.version=${BUILD_VERSION}
