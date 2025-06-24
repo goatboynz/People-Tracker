@@ -1,7 +1,7 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install required packages
+# Install required packages and create directories
 RUN \
     apk add --no-cache \
         nginx \
@@ -19,12 +19,17 @@ RUN \
     mkdir -p /etc/nginx && \
     mkdir -p /etc/php83
 
-# Copy root filesystem and set permissions
-COPY --chmod=755 files/general/etc/services.d/nginx/* /etc/services.d/nginx/
-COPY --chmod=755 files/php83/etc/services.d/php-fpm83/* /etc/services.d/php-fpm83/
+# Copy files
+COPY files/general/etc/services.d/nginx/* /etc/services.d/nginx/
+COPY files/php83/etc/services.d/php-fpm83/* /etc/services.d/php-fpm83/
 COPY files/general/www/public/* /var/www/public/
 COPY files/general/etc/nginx/nginx.conf /etc/nginx/
 COPY files/php83/etc/php83/php-fpm.conf /etc/php83/
+
+# Set permissions
+RUN \
+    find /etc/services.d/nginx -type f -exec chmod 755 {} \; && \
+    find /etc/services.d/php-fpm83 -type f -exec chmod 755 {} \;
 
 # Create required directories with correct permissions
 RUN \
