@@ -50,11 +50,16 @@ RUN \
     chmod -R 755 /var/www/public/uploads && \
     chown nginx:nginx /visitors_config/options.json && \
     chmod 644 /visitors_config/options.json && \
+    mkdir -p /run && \
+    chown -R nginx:nginx /run && \
+    chmod -R 755 /run && \
     touch /run/php-fpm.sock && \
     chown nginx:nginx /run/php-fpm.sock && \
-    chmod 660 /run/php-fpm.sock && \
+    chmod 666 /run/php-fpm.sock && \
     rm -f /var/run/php-fpm.pid && \
-    rm -f /var/run/nginx.pid
+    rm -f /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/lib/nginx && \
+    chmod -R 777 /var/lib/nginx
 
 WORKDIR /var/www/public
 
