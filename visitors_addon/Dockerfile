@@ -12,12 +12,18 @@ RUN \
         php83-session \
         php83-sqlite3 \
         php83-json \
-        php83-gd && \
+        php83-gd \
+        s6-overlay && \
     mkdir -p /etc/services.d/nginx && \
     mkdir -p /etc/services.d/php-fpm83 && \
     mkdir -p /var/www/public && \
     mkdir -p /etc/nginx && \
-    mkdir -p /etc/php83
+    mkdir -p /etc/php83 && \
+    mkdir -p /tmp/sessions && \
+    mkdir -p /visitors_config && \
+    chown -R nginx:nginx /tmp/sessions && \
+    chown -R nginx:nginx /visitors_config && \
+    chmod 755 /tmp/sessions
 
 # Copy files
 COPY files/general/etc/services.d/nginx/* /etc/services.d/nginx/
@@ -35,8 +41,12 @@ RUN \
 RUN \
     mkdir -p /var/www/public/uploads/photos && \
     mkdir -p /var/www/public/uploads/signatures && \
+    touch /visitors_config/options.json && \
+    echo '{"admin_password": "SetSomethingStrongHere"}' > /visitors_config/options.json && \
     chown -R nginx:nginx /var/www && \
-    chmod -R 755 /var/www/public/uploads
+    chmod -R 755 /var/www/public/uploads && \
+    chown nginx:nginx /visitors_config/options.json && \
+    chmod 644 /visitors_config/options.json
 
 WORKDIR /var/www/public
 
