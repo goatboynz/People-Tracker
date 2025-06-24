@@ -13,7 +13,10 @@ RUN \
         php83-sqlite3 \
         php83-json \
         php83-gd \
-        s6-overlay && \
+        s6-overlay \
+        s6-rc \
+        execline \
+        s6 && \
     mkdir -p /etc/services.d/nginx && \
     mkdir -p /etc/services.d/php-fpm83 && \
     mkdir -p /var/www/public && \
@@ -46,7 +49,10 @@ RUN \
     chown -R nginx:nginx /var/www && \
     chmod -R 755 /var/www/public/uploads && \
     chown nginx:nginx /visitors_config/options.json && \
-    chmod 644 /visitors_config/options.json
+    chmod 644 /visitors_config/options.json && \
+    touch /run/php-fpm.sock && \
+    chown nginx:nginx /run/php-fpm.sock && \
+    chmod 777 /run/php-fpm.sock
 
 WORKDIR /var/www/public
 
