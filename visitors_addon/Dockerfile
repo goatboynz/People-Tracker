@@ -12,16 +12,19 @@ RUN \
         php83-session \
         php83-sqlite3 \
         php83-json \
-        php83-gd
+        php83-gd && \
+    mkdir -p /etc/services.d/nginx && \
+    mkdir -p /etc/services.d/php-fpm83 && \
+    mkdir -p /var/www/public && \
+    mkdir -p /etc/nginx && \
+    mkdir -p /etc/php83
 
-# Copy root filesystem
-COPY files/ /
-
-# Make scripts executable
-RUN \
-    chmod a+x \
-        /etc/services.d/nginx/* \
-        /etc/services.d/php-fpm83/*
+# Copy root filesystem and set permissions
+COPY --chmod=755 files/general/etc/services.d/nginx/* /etc/services.d/nginx/
+COPY --chmod=755 files/php83/etc/services.d/php-fpm83/* /etc/services.d/php-fpm83/
+COPY files/general/www/public/* /var/www/public/
+COPY files/general/etc/nginx/nginx.conf /etc/nginx/
+COPY files/php83/etc/php83/php-fpm.conf /etc/php83/
 
 # Create required directories with correct permissions
 RUN \
