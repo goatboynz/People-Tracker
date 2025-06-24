@@ -1,4 +1,2 @@
-#!/usr/bin/with-contenv bashio
-bashio::net.wait_for 9000
-
+#!/usr/bin/with-contenv sh
 exec nginx
