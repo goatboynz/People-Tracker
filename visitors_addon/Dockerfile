@@ -52,7 +52,9 @@ RUN \
     chmod 644 /visitors_config/options.json && \
     touch /run/php-fpm.sock && \
     chown nginx:nginx /run/php-fpm.sock && \
-    chmod 777 /run/php-fpm.sock
+    chmod 660 /run/php-fpm.sock && \
+    rm -f /var/run/php-fpm.pid && \
+    rm -f /var/run/nginx.pid
 
 WORKDIR /var/www/public
 
