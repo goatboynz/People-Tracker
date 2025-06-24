@@ -17,10 +17,12 @@ RUN \
 # Copy root filesystem
 COPY files/ /
 
-# Make scripts executable
+# Make scripts executable and set correct permissions
 RUN \
-    chmod a+x /etc/services.d/nginx/* && \
-    chmod a+x /etc/services.d/php-fpm83/*
+    find /etc/services.d -type f -exec chmod a+x {} + && \
+    chmod -R a+x /etc/services.d && \
+    chmod -R a+x /etc/services.d/nginx && \
+    chmod -R a+x /etc/services.d/php-fpm83
 
 # Create required directories with correct permissions
 RUN \
